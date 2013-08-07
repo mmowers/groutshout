@@ -1,0 +1,17 @@
+#edit-field-location{
+  display: none;
+}
+#edit-field-body-und-0-format{
+  display: none;
+}
+label[for=edit-field-body-und-0-value]{
+  display: none;
+}
+#loader{
+  background : url("/sites/all/modules/custom/grouttalk_glue/loader.gif") no-repeat center;
+  display: none;
+  float: left;
+}
+#edit-submit{
+  float: left;
+}

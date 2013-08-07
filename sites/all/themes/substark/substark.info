@@ -1,0 +1,8 @@
+name = Substark
+description = subtheme of stark
+package = Core
+version = VERSION
+core = 7.x
+stylesheets[all][] = reset.css
+stylesheets[all][] = layout.css
+

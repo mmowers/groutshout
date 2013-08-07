@@ -1,0 +1,269 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function grouttalk_glue_menu() {
+  $items = array();
+  global $user;
+  $access_callback = ($user->uid != 0)? TRUE:FALSE;
+  $items['account'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Account',
+    'access callback' => $access_callback,
+    'page callback' => 'account_menu_page',
+  );
+  return $items;
+}
+function account_menu_page() {
+  global $user;
+  if (!is_object($user) || !$user->uid) {
+    return MENU_NOT_FOUND;
+  }
+  $markup = '<div id="account-menu"><div class="account-menu-links"><a href="user/'.$user->uid.'/edit">Edit Account</a></div>'.
+            '<div class="account-menu-links"><a href="user/logout">Logout</a></div></div>';
+  return array('#markup' => $markup);
+}
+  /**
+ * Implements hook_menu_alter().
+ * 
+ */
+function grouttalk_glue_menu_alter(&$items) {
+  $items['user/%user/edit']['type'] = MENU_CALLBACK;
+  $items['user/%user/edit']['title callback'] = 'tinbully_user_edit_title';
+  $items['user/register']['title'] = 'New User';
+  $items['user/password']['type'] = MENU_CALLBACK;
+  $items['user']['title callback'] = 'tinbully_user_menu_title';
+}
+function tinbully_user_menu_title() {
+  return t('Login/Register');
+}
+function tinbully_user_edit_title() {
+  return t('Edit Account');
+}
+/**
+ * Implements hook_block_info()
+ * 
+ */
+function grouttalk_glue_block_info(){
+  $blocks = array();
+  $blocks['TopButtons']=array(
+      'info' => t('Top Buttons')
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view()
+ * 
+ */
+function grouttalk_glue_block_view($block_name=''){
+  $blocks = array();
+  if($block_name == 'TopButtons'){
+    $blocks['subject'] = '';
+    $blocks['content']= '<div id="top-buttons">';
+    global $user;
+    if(current_path() == 'posts'){
+      $blocks['content'] .= l(t('Shout!'),'node/add/post', array('attributes' => array('id'=>'postbutton'))).
+                            l(t('Update Location'),'posts', array('attributes' => array('id'=>'update-location')));      
+    }
+    else{
+      $blocks['content'] .= l(t('Home'),'posts', array('attributes' => array('id'=>'homebutton')));      
+    }
+    if($user->uid == 0){
+       $blocks['content'] .= l(t('Login'),'user', array('attributes' => array('id'=>'accountbutton')));
+       //$blocks['content'] .= l(t('Login'),'user', array('attributes' => array('id'=>'accountbutton', 'class' => array('view-posts-button'))));
+    }
+    else{
+       $blocks['content'] .= l(t('Account'),'account', array('attributes' => array('id'=>'accountbutton')));      
+    }
+    
+    $blocks['content'] .= '</div>';
+  }
+  return $blocks;
+}
+
+
+/**
+ * Implements hook_url_inbound_alter().
+ * 
+ * redirect to profile pages, dependent on user type
+ */
+
+function grouttalk_glue_url_inbound_alter(&$path, $original_path, $path_language) {
+  global $user;
+  $path_components = explode('/', $path);
+
+  if($path == 'register'){
+    drupal_goto('user/register');
+  }
+  
+  if($path == 'node/add/post' && $user->uid == 0){
+    drupal_goto('user', array('query'=>drupal_get_destination()));
+  }
+}
+
+
+/**
+ * Implements hook_views_api().
+ */
+function grouttalk_glue_views_api() {
+  $testvar = 4;
+  return array(
+    'api' => 3, 
+    'path' => drupal_get_path('module', 'grouttalk_glue') . '/views' 
+   );
+}
+
+
+
+/**
+ * Implements hook_form_alter()
+ * 
+ * For some reason this doesn't catch user_register_form???
+ */
+
+function grouttalk_glue_form_alter(&$form, &$form_state, $form_id) {
+//  dsm($form_id);  // uses devel: print form ID to messages
+//  dsm($form);  // uses devel: pretty print array using Krumo to messages
+  
+//  drupal_set_message($form_id);  // print form ID to messages
+//  drupal_set_message(print_r($form, TRUE));  // print array to messages (not pretty)
+
+}
+
+/**
+ * Implementations of hook_form_FORMID_alter(). to find form_id use grouttalk_glue_form_alter().
+ */
+
+
+/**
+ * Implements hook_form_user_login_alter()
+ */
+function grouttalk_glue_form_user_login_alter(&$form, &$form_state, $form_id) {
+  $form['name']['#description']='';
+  $form['pass']['#description']='If you forgot your password, click '.l('here','user/password');
+  $form['#submit'][] = 'user_login_redirect';
+}
+function user_login_redirect(&$form, &$form_state) {
+  $form_state['redirect'] = 'posts';
+}
+function grouttalk_glue_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
+  $form['#submit'][] = 'user_login_redirect';
+  $form['actions']['submit']['#validate'][] = 'grouttalk_username_validate';
+  $form['account']['current_pass']['#description'] = 'Enter this <em>only if</em> you are changing your <em class="placeholder">E-mail address</em> or <em class="placeholder">Password</em>.';
+  $form['account']['mail']['#description'] = 'A valid e-mail address.';
+}
+function grouttalk_username_validate($form, &$form_state){
+  $current_name = '';
+  if(!empty($form_state['user']->field_name['und']['0']['value'])){
+    $current_name = strip_white_to_lower($form_state['user']->field_name['und']['0']['value']);    
+  }
+  $form_input_name = '';
+  if(!empty($form_state['input']['field_name']['und']['0']['value'])){
+    $form_input_name = strip_white_to_lower($form_state['input']['field_name']['und']['0']['value']);    
+  }
+  if(!empty($form_input_name) && $form_input_name != $current_name){
+    $result = db_query("SELECT username.field_name_value
+                          FROM {field_data_field_name} username"
+                      )->fetchAll();
+    foreach ($result as $record) {
+      $record_name = strip_white_to_lower($record->field_name_value);
+      if($record_name == $form_input_name){
+        form_set_error('field_name','This username is already being used. Please choose a different name.');
+        return;
+      }
+    }    
+  }
+}
+function strip_white_to_lower($str){
+  $out = preg_replace('/\s+/', '', $str); //strip whitespace
+  $out = strtolower($out); //convert to lowercase
+  return $out;
+}
+
+
+/**
+ * Implements hook_node_insert()
+ */
+
+function grouttalk_glue_node_insert($node) {
+  drupal_goto('posts');
+}
+
+/**
+ * Implementations of hook_views_...()
+ */
+
+function grouttalk_glue_views_pre_view(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_pre_build(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_query_alter(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_post_build(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_pre_execute(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_post_execute(&$view){
+  $test_var = 1;
+}
+function grouttalk_glue_views_pre_render(&$view){
+  if($view->name == 'posts'){
+    global $user;
+    for($i=0; $i<count($view->result); $i++){
+      if($user->uid == $view->result[$i]->users_node_uid  || $user->uid == 1){
+        $view->result[$i]->field_field_body[0]['rendered']['#markup'] .= '<a href="node/'.$view->result[$i]->nid.'/delete" class="posts-delete-link">Delete this post</a>';
+      }
+    }
+  }
+}
+function grouttalk_glue_views_post_render(&$view){
+  $test_var = 1;
+}
+
+/**
+ * Implements hook_form_post_node_form_alter()
+ */
+
+function grouttalk_glue_form_post_node_form_alter(&$form, &$form_state, $form_id) {
+  $test_var = 1;
+}
+
+/**
+ * Implements hook_init()
+ * 
+ * This is scary! Is it wrong to call the voting api functions now? probably...
+ */
+function grouttalk_glue_init() {
+  $test_var = 1;
+  if(current_path() == 'posts' && count($_POST)>0){
+    $key = array_shift(array_keys($_POST));
+    $vote_array = explode('_',$key);
+    if($vote_array[0] == 'voteform'){
+      global $user;
+      if($user->uid > 0){
+        $vote['entity_id'] = $vote_array[1];
+        $vote['value'] = $vote_array[2];
+        $vote['value_type'] = 'points';
+        $result = votingapi_set_votes($vote);        
+      }
+      else{
+        drupal_goto('user');
+      }
+    }
+  }
+}
+
+function grouttalk_glue_form_user_register_form_alter(&$form, &$form_state, $form_id) {   
+  $form['#submit'][] = 'user_register_redirect';  
+}
+
+function user_register_redirect(&$form, &$form_state) {
+    $form_state['redirect'] = 'user'; 
+}

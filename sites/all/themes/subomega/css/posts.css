@@ -1,0 +1,53 @@
+.views-field-field-body p{
+  margin-bottom: 0;
+}
+label[for=edit-sort-by]{
+  float: left;
+  margin-right: 10px;
+}
+
+.views-widget-sort-by{
+  margin-bottom: 10px;
+}
+
+.views-field-field-name .field-content{
+  font-weight: bold;
+}
+
+.views-field-nid,
+#edit-distance-wrapper,
+.views-widget-sort-order,
+.views-submit-button,
+.views-field-field-location{
+  display: none;
+}
+.vote-form{
+  /*display: inline-block;*/
+  float: left;
+  width: 40px;
+}
+.views-row{
+  /*display: inline-block;*/
+  margin-left: 40px;
+  border-bottom: lightgrey 1px solid;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+
+.vote-form input[type="submit"]{
+  font-size: 1.5em;
+}
+
+.views-field-field-body p{
+  font-size: 15px;
+  /*color: #BD2031;*/
+}
+
+.views-field-value .field-content{
+  /*display: inline;*/
+  font-style: italic;
+}
+
+.views-field-created, .distance-from-me{
+  color: gray;
+}

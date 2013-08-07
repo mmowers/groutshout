@@ -1,0 +1,5 @@
+; $Id
+name = Grouttalk Glue
+description = Glue Code for Grouttalk
+core = 7.x
+package = Grouttalk
