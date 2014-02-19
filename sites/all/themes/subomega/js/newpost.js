@@ -52,7 +52,7 @@
         //$('#edit-submit').hide();
         //$('#loader').show();        
         accuracy_feet = position.coords.accuracy*3.28084;
-        if(accuracy_feet<250){
+        if(accuracy_feet<250000){
           $('#edit-field-location-und-0-locpick-user-latitude').attr('value',position.coords.latitude);
           $('#edit-field-location-und-0-locpick-user-longitude').attr('value',position.coords.longitude);
           $('#post-node-form').submit();          

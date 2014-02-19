@@ -244,8 +244,8 @@ function grouttalk_glue_init() {
   $test_var = 1;
   if(current_path() == 'posts' && count($_POST)>0){
     $key = array_shift(array_keys($_POST));
-    $vote_array = explode('_',$key);
-    if($vote_array[0] == 'voteform'){
+    if(preg_match('#^voteform_[1-9][0-9]*_1$#', $key)){
+      $vote_array = explode('_',$key);
       global $user;
       if($user->uid > 0){
         $vote['entity_id'] = $vote_array[1];
